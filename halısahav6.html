@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halısaha Takım Kurma</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.plugin.standard_fonts_metrics.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.plugin.split_text_to_size.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .team-title {
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .player-card {
+            margin-bottom: 10px;
+        }
+        .saved-data {
+            margin-top: 30px;
+        }
+        .selected-data {
+            background-color: #d1ecf1 !important; /* Açık mavi arka plan */
+        }
+        .hidden {
+            display: none;
+        }
+        .match-result-table {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainPage">
+        <h1 class="text-center mb-4">Halısaha Takım Kurma Programı</h1>
+        <div class="row">
+            <!-- Oyuncu Ekleme Formu -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Oyuncu Ekle / Düzenle</h5>
+                        <div class="mb-3">
+                            <input type="text" id="name" class="form-control" placeholder="Ad Soyad">
+                        </div>
+                        <div class="mb-3">
+                            <select id="position" class="form-select">
+                                <option value="" selected>Standart mevki seçin</option>
+                                <option value="goalkeeper">Kaleci</option>
+                                <option value="defender">Stoper</option>
+                                <option value="midfielder">Orta Saha</option>
+                                <option value="forward">Forvet</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <input type="number" id="goalkeeperSkill" class="form-control" placeholder="Kalecilik (0-10)" min="0" max="10">
+                        </div>
+                        <div class="mb-3">
+                            <input type="number" id="defenderSkill" class="form-control" placeholder="Stoper (0-10)" min="0" max="10">
+                        </div>
+                        <div class="mb-3">
+                            <input type="number" id="midfielderSkill" class="form-control" placeholder="Orta Saha (0-10)" min="0" max="10">
+                        </div>
+                        <div class="mb-3">
+                            <input type="number" id="forwardSkill" class="form-control" placeholder="Forvet (0-10)" min="0" max="10">
+                        </div>
+                        <div class="mb-3">
+                            <label for="matchDate" class="form-label">Halı Saha Tarihi</label>
+                            <input type="date" id="matchDate" class="form-control">
+                        </div>
+                        <button class="btn btn-primary w-100 mb-2" onclick="addOrUpdatePlayer()">Oyuncu Ekle / Güncelle</button>
+                        <button class="btn btn-success w-100" onclick="createTeams()">Takımları Oluştur</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Oyuncu Listesi -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Oyuncular</h5>
+                        <div id="players" class="list-group">
+                            <!-- Oyuncular burada listelenecek -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Takım Listesi -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Takımlar</h5>
+                        <div id="teams">
+                            <!-- Takımlar burada listelenecek -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kaydedilen Veriler -->
+        <div class="saved-data">
+            <h3 class="text-center">Kaydedilen Veriler</h3>
+            <div id="savedData" class="list-group">
+                <!-- Kaydedilen veriler burada listelenecek -->
+            </div>
+            <div class="text-center mt-3">
+                <button class="btn btn-info" onclick="goToMatchResult()">Maç Sonu</button>
+                <button class="btn btn-danger" onclick="deleteSelectedData()">Seçili Veriyi Sil</button>
+                <button class="btn btn-secondary" onclick="downloadSelectedPDF()">PDF Olarak İndir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maç Sonu Sayfası -->
+    <div class="container hidden" id="matchResultPage">
+        <h1 class="text-center mb-4">Maç Sonucu</h1>
+        <div id="matchResultContent">
+            <!-- Oyuncu ve takım listesi burada görünecek -->
+        </div>
+        <div class="text-center mt-3">
+            <button class="btn btn-primary" onclick="saveMatchResult()">Kaydet</button>
+            <button class="btn btn-secondary" onclick="goBackToMain()">Geri</button>
+        </div>
+        <div id="resultTables" class="match-result-table hidden">
+            <h3>Gol Krallığı</h3>
+            <table class="table table-striped" id="goalTable">
+                <thead>
+                    <tr>
+                        <th>Oyuncu</th>
+                        <th>Gol</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Gol krallığı verileri burada görünecek -->
+                </tbody>
+            </table>
+            <h3>Asist Krallığı</h3>
+            <table class="table table-striped" id="assistTable">
+                <thead>
+                    <tr>
+                        <th>Oyuncu</th>
+                        <th>Asist</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Asist krallığı verileri burada görünecek -->
+                </tbody>
+            </table>
+            <h3>Ortalama Puan</h3>
+            <table class="table table-striped" id="averageTable">
+                <thead>
+                    <tr>
+                        <th>Oyuncu</th>
+                        <th>Ortalama Puan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Ortalama puan verileri burada görünecek -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const players = [];
+        const savedData = [];
+        let editingPlayerIndex = null;
+        let selectedDataIndex = null;
+
+        // Oyuncu ekleme veya düzenleme fonksiyonu
+        function addOrUpdatePlayer() {
+            const name = document.getElementById('name').value;
+            const position = document.getElementById('position').value;
+            const goalkeeperSkill = parseInt(document.getElementById('goalkeeperSkill').value);
+            const defenderSkill = parseInt(document.getElementById('defenderSkill').value);
+            const midfielderSkill = parseInt(document.getElementById('midfielderSkill').value);
+            const forwardSkill = parseInt(document.getElementById('forwardSkill').value);
+
+            // Giriş doğrulama
+            if (!name) {
+                alert("Lütfen oyuncu adını girin.");
+                return;
+            }
+            if (!position) {
+                alert("Lütfen standart mevki seçin.");
+                return;
+            }
+            if (isNaN(goalkeeperSkill) || isNaN(defenderSkill) || isNaN(midfielderSkill) || isNaN(forwardSkill)) {
+                alert("Lütfen tüm yetenek puanlarını doldurun.");
+                return;
+            }
+
+            const player = {
+                name,
+                position,
+                goalkeeperSkill,
+                defenderSkill,
+                midfielderSkill,
+                forwardSkill
+            };
+
+            if (editingPlayerIndex !== null) {
+                players[editingPlayerIndex] = player;
+                editingPlayerIndex = null;
+            } else {
+                players.push(player);
+            }
+
+            clearForm();
+            displayPlayers();
+        }
+
+        // Formu temizleme fonksiyonu
+        function clearForm() {
+            document.getElementById('name').value = '';
+            document.getElementById('position').value = '';
+            document.getElementById('goalkeeperSkill').value = '';
+            document.getElementById('defenderSkill').value = '';
+            document.getElementById('midfielderSkill').value = '';
+            document.getElementById('forwardSkill').value = '';
+        }
+
+        // Oyuncu listesini ekranda göster
+        function displayPlayers() {
+            const playersDiv = document.getElementById('players');
+            playersDiv.innerHTML = '';
+            players.forEach((player, index) => {
+                playersDiv.innerHTML += `
+                    <div class="list-group-item player-card">
+                        ${index + 1}. ${player.name} (${player.position}) - Kalecilik: ${player.goalkeeperSkill}, Stoper: ${player.defenderSkill}, Orta Saha: ${player.midfielderSkill}, Forvet: ${player.forwardSkill}
+                        <button class="btn btn-sm btn-warning float-end ms-2" onclick="editPlayer(${index})">Düzenle</button>
+                        <button class="btn btn-sm btn-danger float-end" onclick="deletePlayer(${index})">Sil</button>
+                    </div>`;
+            });
+        }
+
+        // Oyuncu düzenleme fonksiyonu
+        function editPlayer(index) {
+            const player = players[index];
+            document.getElementById('name').value = player.name;
+            document.getElementById('position').value = player.position;
+            document.getElementById('goalkeeperSkill').value = player.goalkeeperSkill;
+            document.getElementById('defenderSkill').value = player.defenderSkill;
+            document.getElementById('midfielderSkill').value = player.midfielderSkill;
+            document.getElementById('forwardSkill').value = player.forwardSkill;
+            editingPlayerIndex = index;
+        }
+
+        // Oyuncu silme fonksiyonu
+        function deletePlayer(index) {
+            players.splice(index, 1);
+            displayPlayers();
+        }
+
+        // Takımları oluşturma fonksiyonu
+        function createTeams() {
+            const matchDate = document.getElementById('matchDate').value;
+            if (!matchDate) {
+                alert("Lütfen halı saha tarihi seçin.");
+                return;
+            }
+
+            if (players.length < 14) {
+                alert("En az 14 oyuncu girmelisiniz.");
+                return;
+            }
+
+            if (players.length % 2 !== 0) {
+                alert("Oyuncu sayısı tek olduğu için takımlar eşit şekilde oluşturulamaz.");
+                return;
+            }
+
+            const teams = [[], []];
+
+            // Savunmacı ve hücumcu oyuncuları ayır
+            const defenders = players.filter(player => player.position === "goalkeeper" || player.position === "defender");
+            const attackers = players.filter(player => player.position === "midfielder" || player.position === "forward");
+
+            // Savunmacı oyuncuları dağıt
+            distributePlayers(defenders, teams);
+
+            // Hücumcu oyuncuları dağıt
+            distributePlayers(attackers, teams);
+
+            displayTeams(teams);
+
+            // Veriyi kaydet
+            saveData(matchDate, teams);
+        }
+
+        // Oyuncuları iki takıma eşit şekilde dağıt
+        function distributePlayers(players, teams) {
+            players.forEach((player, index) => {
+                teams[index % 2].push(player);
+            });
+        }
+
+        // Takımları ekranda göster
+        function displayTeams(teams) {
+            const teamsDiv = document.getElementById('teams');
+            teamsDiv.innerHTML = '';
+            teams.forEach((team, index) => {
+                teamsDiv.innerHTML += `<div class="team-title">Takım ${index + 1}</div>`;
+                team.forEach(player => {
+                    teamsDiv.innerHTML += `<p>${player.name} (${player.position}) - Kalecilik: ${player.goalkeeperSkill}, Stoper: ${player.defenderSkill}, Orta Saha: ${player.midfielderSkill}, Forvet: ${player.forwardSkill}</p>`;
+                });
+            });
+        }
+
+        // Veriyi kaydet
+        function saveData(matchDate, teams) {
+            const data = {
+                date: matchDate,
+                timestamp: new Date().toLocaleString(),
+                teams: JSON.parse(JSON.stringify(teams))
+            };
+            savedData.push(data);
+            displaySavedData();
+        }
+
+        // Kaydedilen verileri ekranda göster
+        function displaySavedData() {
+            const savedDataDiv = document.getElementById('savedData');
+            savedDataDiv.innerHTML = '';
+            savedData.forEach((data, index) => {
+                const isSelected = index === selectedDataIndex ? 'selected-data' : '';
+                savedDataDiv.innerHTML += `
+                    <div class="list-group-item ${isSelected}" onclick="loadSavedData(${index})" style="cursor: pointer;">
+                        <strong>Tarih:</strong> ${data.date} - <strong>Oluşturma:</strong> ${data.timestamp}
+                    </div>`;
+            });
+        }
+
+        // Kaydedilen veriyi yükle
+        function loadSavedData(index) {
+            selectedDataIndex = index;
+            const data = savedData[index];
+            players.length = 0;
+            data.teams.flat().forEach(player => players.push(player));
+            displayPlayers();
+            displayTeams(data.teams);
+            displaySavedData(); // Seçili kaydın arka planını güncelle
+        }
+
+        // Seçili veriyi sil
+        function deleteSelectedData() {
+            if (selectedDataIndex === null) {
+                alert("Lütfen bir kayıt seçin.");
+                return;
+            }
+            savedData.splice(selectedDataIndex, 1);
+            selectedDataIndex = null;
+            displaySavedData();
+            clearForm();
+            document.getElementById('teams').innerHTML = '';
+        }
+
+        // Seçili veriyi PDF olarak indir
+        function downloadSelectedPDF() {
+            if (selectedDataIndex === null) {
+                alert("Lütfen bir kayıt seçin.");
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const data = savedData[selectedDataIndex];
+
+            let y = 10; // Başlangıç y koordinatı
+
+            doc.text(`Tarih: ${data.date}`, 10, y);
+            y += 10;
+            doc.text(`Oluşturma: ${data.timestamp}`, 10, y);
+            y += 10;
+
+            data.teams.forEach((team, teamIndex) => {
+                doc.text(`Takım ${teamIndex + 1}:`, 10, y);
+                y += 10;
+                team.forEach((player, playerIndex) => {
+                    doc.text(`${playerIndex + 1}. ${player.name} (${player.position})`, 20, y);
+                    y += 10;
+                });
+                y += 5; // Takımlar arasında boşluk bırak
+            });
+
+            doc.save(`halisaha_takim_${data.date}.pdf`);
+        }
+
+        // Maç Sonu Sayfasına Geçiş
+        function goToMatchResult() {
+            document.getElementById('mainPage').classList.add('hidden');
+            document.getElementById('matchResultPage').classList.remove('hidden');
+            loadMatchResultContent();
+        }
+
+        // Ana Sayfaya Dönüş
+        function goBackToMain() {
+            document.getElementById('matchResultPage').classList.add('hidden');
+            document.getElementById('mainPage').classList.remove('hidden');
+        }
+
+        // Maç Sonu İçeriğini Yükle
+        function loadMatchResultContent() {
+            const matchResultContent = document.getElementById('matchResultContent');
+            matchResultContent.innerHTML = '';
+
+            if (selectedDataIndex === null) {
+                matchResultContent.innerHTML = '<p>Lütfen bir kayıt seçin.</p>';
+                return;
+            }
+
+            const data = savedData[selectedDataIndex];
+            data.teams.forEach((team, teamIndex) => {
+                matchResultContent.innerHTML += `<h3>Takım ${teamIndex + 1}</h3>`;
+                team.forEach(player => {
+                    matchResultContent.innerHTML += `
+                        <div class="mb-3">
+                            <label>${player.name} (${player.position})</label>
+                            <input type="number" class="form-control mb-1" placeholder="Gol (0-50)" min="0" max="50">
+                            <input type="number" class="form-control mb-1" placeholder="Asist (0-50)" min="0" max="50">
+                            <input type="number" class="form-control" placeholder="Ortalama Puan (0-10)" min="0" max="10">
+                        </div>`;
+                });
+            });
+        }
+
+        // Maç Sonucu Kaydet
+        function saveMatchResult() {
+            alert('Maç sonucu kaydedildi!');
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
